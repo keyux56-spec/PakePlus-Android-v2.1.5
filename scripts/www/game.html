@@ -138,18 +138,25 @@
         }
         .fab:active { transform: scale(0.9); }
 
+        /* --- 修改开始：改为底部弹窗样式，解决键盘遮挡问题 --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 1000;
-            display: none; align-items: center; justify-content: center;
+            display: none; 
+            align-items: flex-end; /* 关键修改：底部对齐 */
+            justify-content: center;
             backdrop-filter: blur(5px);
         }
         .modal-box {
-            background: white; width: 85%; max-width: 320px;
-            border-radius: 20px; padding: 25px;
-            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: white; 
+            width: 100%; /* 宽度铺满 */
+            max-width: 600px;
+            border-radius: 24px 24px 0 0; /* 只圆上面的角 */
+            padding: 25px 25px 40px 25px; /* 底部多留点白 */
+            animation: slideUp 0.3s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        @keyframes popUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        /* --- 修改结束 --- */
         
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 12px; font-weight: 700; color: #666; margin-bottom: 6px; }
@@ -362,7 +369,7 @@
         }
 
         async function delPost(id) {
-            if(!confirm("确定删除这条招募吗？")) return;
+            if(!confirm("确定删除这条信息吗？")) return;
             const q = Bmob.Query("GamePost");
             try {
                 await q.destroy(id);
