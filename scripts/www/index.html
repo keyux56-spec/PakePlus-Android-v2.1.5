@@ -96,11 +96,11 @@
         }
         .dot.active { background: #fff; width: 14px; border-radius: 4px; }
 
-        /* 公告栏 */
+        /* 公告栏 - 优化后的样式 */
         .notice-section { padding: 0 24px 10px 24px; }
         .notice-card {
             background: #fff; border-radius: 16px; padding: 12px 16px;
-            display: flex; align-items: center; 
+            display: flex; align-items: flex-start; /* 改为顶部对齐 */
             gap: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.03); cursor: pointer;
             transition: all 0.3s ease; border: 1px solid rgba(0,0,0,0.02);
@@ -110,17 +110,32 @@
         .n-icon { 
             width: 20px; height: 20px;
             flex-shrink: 0;
+            margin-top: 2px; /* 配合文字行高 */
             display: flex; align-items: center; justify-content: center;
         }
         .n-icon img { width: 100%; height: 100%; }
 
-        .n-content { flex: 1; font-size: 14px; color: #444; line-height: 1.6; }
+        .n-content { 
+            flex: 1; 
+            font-size: 14px; 
+            color: #444; 
+            line-height: 1.6;
+            word-break: break-all; /* 强制长链接换行 */
+            overflow-wrap: break-word;
+        }
+        /* 展开时的细节控制 */
+        .n-content:not(.collapsed) {
+            max-height: 260px; /* 限制展开最大高度 */
+            overflow-y: auto;  /* 超出则内部滚动 */
+            padding-bottom: 5px;
+        }
         .n-content.collapsed {
             display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;
         }
         
         .n-arrow { 
             width: 24px; height: 24px; 
+            flex-shrink: 0;
             transition: 0.3s; 
             opacity: 0.6; 
             display: flex; align-items: center; justify-content: center;
@@ -392,12 +407,13 @@
         </div>
         <h3 style="text-align: center; margin-bottom: 5px;">软件更新</h3>
       
-        <p style="text-align: center; font-size: 13px; color: #bbb; margin-bottom: 15px;">当前版本: 2.0</p>  <!-- // 🔴 将当前版本号设置为  -->
+        <p style="text-align: center; font-size: 13px; color: #bbb; margin-bottom: 15px;">当前版本: 3.0</p>
         
         <p id="newVerCode" style="text-align: center; color: #333; font-weight:bold; margin-bottom: 5px;">正在检查...</p>
 
-        <p style="text-align: center; font-size: 12px; margin-bottom: 20px; color: #999;">
-            下载遇到问题？<a id="webLinkUrl" href="#" style="color: #007AFF; text-decoration: underline;">点此访问网页下载</a>
+        <p id="webLinkContainer" style="text-align: center; font-size: 11px; margin-bottom: 20px; color: #999; word-break: break-all; padding: 0 10px;">
+            下载地址 (长按可复制): <br>
+            <span id="webLinkUrlDisplay" style="color: #007AFF; text-decoration: underline; user-select: all; -webkit-user-select: all;">正在获取...</span>
         </p>
 
         <div class="c-info-box">
@@ -406,7 +422,7 @@
         </div>
 
         <button class="btn-copy" id="btnDownload" onclick="" style="background: #007AFF; margin-top: 10px;">
-            立即更新下载
+            立即跳转下载
         </button>
     </div>
 
@@ -432,8 +448,7 @@
 
     <script>
         let banners = [];
-        // 🔴 将当前版本号设置为 
-        const currentVersion = "2.0"; 
+        const currentVersion = "3.0"; 
 
         window.onload = () => { 
             initBanner(); 
@@ -457,6 +472,7 @@
             });
         }
 
+        // 修改点：更新检测函数逻辑，同步更新文字显示链接
         function checkUpdate() {
             document.getElementById('modalMask').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
@@ -467,9 +483,10 @@
 
             document.getElementById('newVerCode').innerText = "正在获取最新版本...";
             document.getElementById('updateLog').innerText = "加载中...";
-            const webLink = document.getElementById('webLinkUrl');
-            webLink.innerText = "获取链接中...";
-            webLink.removeAttribute("href");
+            
+            // 获取显示的链接元素
+            const displayLink = document.getElementById('webLinkUrlDisplay');
+            displayLink.innerText = "获取链接中...";
 
             const query = Bmob.Query("AppVersion");
             query.order("-createdAt"); 
@@ -481,16 +498,11 @@
                     document.getElementById('newVerCode').innerText = "最新版本: " + dbVer;
                     document.getElementById('updateLog').innerText = latest.log || "暂无更新说明";
                     
-                    if (latest.website) {
-                        webLink.href = latest.website;
-                        webLink.innerText = "点此访问网页版下载";
-                    } else {
-                        webLink.innerText = "暂无备用链接";
-                    }
+                    // 修改点：将数据库中的链接显现出来
+                    const finalUrl = latest.website || latest.url || "暂无链接";
+                    displayLink.innerText = finalUrl;
 
                     const btn = document.getElementById('btnDownload');
-                    // 🔴 核心逻辑：版本号比对
-                    // 去掉空格进行严格对比
                     if (String(dbVer).trim() === String(currentVersion).trim()) {
                         document.getElementById('newVerCode').innerText = "当前已是最新 (" + dbVer + ")";
                         btn.style.background = "#ccc"; 
@@ -498,10 +510,10 @@
                         btn.onclick = null; 
                     } else {
                         btn.style.background = "#007AFF"; 
-                        btn.innerText = "立即更新下载";
+                        btn.innerText = "立即跳转下载";
                         btn.onclick = function() {
-                            if(latest.url) {
-                                window.location.href = latest.url; 
+                            if(finalUrl !== "暂无链接") {
+                                window.location.href = finalUrl; 
                             } else {
                                 showToast("下载链接配置错误");
                             }
@@ -510,7 +522,7 @@
                 } else {
                     document.getElementById('newVerCode').innerText = "当前已是最新";
                     document.getElementById('updateLog').innerText = "暂无新版本发布";
-                    document.getElementById('webLinkUrl').innerText = "";
+                    displayLink.innerText = "暂无链接";
                     const btn = document.getElementById('btnDownload');
                     btn.style.background = "#ccc";
                     btn.innerText = "暂无更新";
@@ -520,6 +532,7 @@
                 console.log(err);
                 document.getElementById('newVerCode').innerText = "检查失败";
                 document.getElementById('updateLog').innerText = "网络连接错误，请稍后再试";
+                displayLink.innerText = "获取失败";
             });
         }
 
@@ -548,6 +561,7 @@
             } else {
                 text.classList.add('collapsed');
                 arrow.classList.remove('open');
+                text.scrollTop = 0; // 折叠时回到顶部
             }
         }
 
@@ -809,13 +823,11 @@
                 link.addEventListener('click', (e) => {
                     const href = link.getAttribute('href');
                     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-                    
                     e.preventDefault(); 
                     window.location.href = href; 
                 });
             });
         });
-
     </script>
 </body>
 </html>
