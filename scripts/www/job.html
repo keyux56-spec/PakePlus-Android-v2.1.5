@@ -57,10 +57,26 @@
         .fab-btn { position: fixed; bottom: 30px; right: 25px; width: 60px; height: 60px; background: var(--primary-gradient); border-radius: 50%; box-shadow: 0 10px 25px rgba(0, 122, 255, 0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 30px; cursor: pointer; z-index: 900; transition: transform 0.2s; }
         .fab-btn:active { transform: scale(0.9) rotate(90deg); }
         .sheet-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(3px); }
-        .sheet-modal { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-radius: 30px 30px 0 0; padding: 25px; z-index: 1001; transform: translateY(100%); transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); max-width: 600px; left: 50%; margin-left: -50%; }
+        
+        /* ★★ 修改点 1：底部弹窗 CSS 优化 ★★ 
+           增加了 max-height 和 overflow-y，确保键盘弹出时，
+           如果屏幕变矮，弹窗内容可以滚动，而不是被切断。
+        */
+        .sheet-modal { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: #fff; border-radius: 30px 30px 0 0; padding: 25px; 
+            z-index: 1001; transform: translateY(100%); 
+            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
+            max-width: 600px; left: 50%; margin-left: -50%;
+            /* 新增属性，防止键盘顶起时内容溢出 */
+            max-height: 85vh; 
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
         @media (min-width: 600px) { .sheet-modal { margin-left: -300px; } }
         .sheet-modal.show { transform: translateY(0); }
-        .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
         .sheet-title { font-size: 18px; font-weight: 800; }
         .sheet-close { font-size: 24px; color: #ccc; cursor: pointer; }
         .input-group { margin-bottom: 15px; }
@@ -68,7 +84,7 @@
         .input-contact { width: 100%; padding: 12px; border: 2px solid #F1F2F6; border-radius: 12px; background: #fff; font-size: 14px; outline: none; }
         .input-area { width: 100%; border: none; background: #F1F2F6; border-radius: 16px; padding: 15px; font-size: 15px; resize: none; height: 120px; font-family: inherit; color: #2F3542; }
         .input-area:focus, .input-contact:focus, .select-type:focus { border-color: var(--primary); background: #fff; }
-        .sheet-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .sheet-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-shrink: 0; }
         .switch-label { font-size: 14px; color: #747D8C; display: flex; align-items: center; gap: 6px; }
         .switch-label input { accent-color: var(--primary); width: 18px; height: 18px; }
         .btn-send { background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 25px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3); }
@@ -103,6 +119,7 @@
     </div>
     <div class="fab-btn" onclick="openPublishSheet()"><i class="fas fa-plus"></i></div>
     <div class="sheet-mask" id="sheetMask" onclick="closePublishSheet()"></div>
+    
     <div class="sheet-modal" id="sheetModal">
         <div class="sheet-header">
             <div class="sheet-title">发布兼职/求职</div>
@@ -124,6 +141,7 @@
             <button class="btn-send" onclick="submitPost()" id="btnPub">发布</button>
         </div>
     </div>
+
     <div class="sheet-mask" id="userModalMask" onclick="closeUserModal()"></div>
     <div class="user-modal" id="userModal">
         <div class="m-avatar" id="mAvatar">U</div>
@@ -133,6 +151,27 @@
     </div>
     <script>
         window.onload = () => loadPosts();
+        
+        // ★★★ 修改点 2：自动监听键盘，调整位置 ★★★
+        // 当输入框获取焦点时，自动滚动到可视区域中心
+        document.querySelectorAll('input, textarea').forEach(input => {
+            input.addEventListener('focus', () => {
+                // 延迟一下等待键盘完全弹出
+                setTimeout(() => {
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        });
+        
+        // 监听窗口大小改变（针对Android键盘弹出导致窗口缩小的情况）
+        window.addEventListener('resize', () => {
+            const activeEl = document.activeElement;
+            if(activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        // ★★★ 修改结束 ★★★
+
         function openPublishSheet() {
             const user = Bmob.User.current();
             if(!user) { if(confirm("发布需要登录，去登录吗？")) location.href="login.html"; return; }
@@ -159,7 +198,6 @@
 
             if(!contact || !content) return showToast("请填写完整信息");
 
-            // ★★★ 2. 核心新增：检测发布内容的违禁词 ★★★
             if (typeof checkSensitive === 'function') {
                 const badContent = checkSensitive(content);
                 if (badContent) return showToast("内容包含违规词，无法发布");
@@ -167,7 +205,6 @@
                 const badContact = checkSensitive(contact);
                 if (badContact) return showToast("联系方式包含违禁词");
             }
-            // ★★★ 新增结束 ★★★
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -303,12 +340,10 @@
             const val = input.value.trim();
             if(!val) return;
 
-            // ★★★ 3. 核心新增：检测评论内容的违禁词 ★★★
             if (typeof checkSensitive === 'function') {
                 const badComment = checkSensitive(val);
                 if (badComment) return showToast("评论包含违禁词，无法发送");
             }
-            // ★★★ 新增结束 ★★★
 
             const query = Bmob.Query("Comment");
             query.set("content", val);
