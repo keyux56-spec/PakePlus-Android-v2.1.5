@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>失物招领 - 惠德校园</title>
+    <title>失物招领</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <script src="./Bmob-2.7.0.min.js"></script>
@@ -94,11 +94,18 @@
         }
         .modal-overlay.show { opacity: 1; }
 
+        /* ★★ 修改点 1：底部弹窗样式优化，防止键盘遮挡 ★★ */
         .bottom-sheet {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #fff; border-radius: 24px 24px 0 0;
             padding: 25px; z-index: 501;
             transform: translateY(100%); transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            
+            /* 新增属性：限制高度并允许滚动 */
+            max-height: 85vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
         .bottom-sheet.show { transform: translateY(0); }
 
@@ -181,7 +188,8 @@
 
     <div class="bottom-sheet" id="postSheet">
         <div class="form-title">发布信息</div>
-        <p class="limit-hint">⚠️ 每天限发 2 条失物/招领信息</p> <div class="radio-group">
+        <p class="limit-hint">⚠️ 每天限发 2 条失物/招领信息</p> 
+        <div class="radio-group">
             <input type="radio" id="type_lost" name="p_type" value="寻物" checked>
             <label for="type_lost" class="radio-label r-lost">我是失主 (寻物)</label>
             
@@ -217,6 +225,23 @@
                 return;
             }
             fetchList();
+            
+            // ★★ 修改点 2：自动监听输入框，聚焦时滚动到视野中心 ★★
+            document.querySelectorAll('input, textarea').forEach(input => {
+                input.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300); // 延时等待键盘弹出
+                });
+            });
+            
+            // 监听窗口大小变化（处理安卓键盘顶起问题）
+            window.addEventListener('resize', () => {
+                const activeEl = document.activeElement;
+                if(activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
         }
 
         // 获取列表
@@ -340,7 +365,6 @@
 
             if(!title || !content || !contact) return showToast("请填写完整信息");
             
-            // 🔴 修正：这里改用了 checkSensitive
             if(typeof checkSensitive === 'function') {
                 if(checkSensitive(title) || checkSensitive(content)) return showToast("包含违禁词，请文明用语");
             }
