@@ -34,6 +34,11 @@
             max-width: 600px; 
             margin: 0 auto; 
             padding-bottom: 60px; 
+            
+            /* --- 修改开始：防止左右滑动触发浏览器后退 --- */
+            overscroll-behavior-x: none; /* 禁止水平方向的边界溢出行为（如侧滑后退） */
+            touch-action: pan-y;         /* 告诉浏览器只处理垂直滚动，水平手势交给JS处理 */
+            /* --- 修改结束 --- */
         }
 
         /* 顶部导航 */
@@ -407,7 +412,7 @@
         </div>
         <h3 style="text-align: center; margin-bottom: 5px;">软件更新</h3>
       
-        <p style="text-align: center; font-size: 13px; color: #bbb; margin-bottom: 15px;">当前版本: 3.0</p>
+        <p style="text-align: center; font-size: 13px; color: #bbb; margin-bottom: 15px;">当前版本: 3.2</p>
         
         <p id="newVerCode" style="text-align: center; color: #333; font-weight:bold; margin-bottom: 5px;">正在检查...</p>
 
@@ -454,7 +459,7 @@
 
     <script>
         let banners = [];
-        const currentVersion = "3.0"; 
+        const currentVersion = "3.2"; 
 
         window.onload = () => { 
             initBanner(); 
